@@ -1,104 +1,162 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { FaSearch, FaChevronLeft, FaChevronRight, FaHome } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Create a style object for the animations
-const styles = {
-  loadingBubbles: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: '3rem 0'
-  },
-  bubbleContainer: {
-    display: 'flex',
-    gap: '0.5rem'
-  },
-  bubble: {
-    width: '1rem',
-    height: '1rem',
-    borderRadius: '50%'
-  }
-};
-
 const AttendancePage = () => {
+  // State management
   const [employees, setEmployees] = useState([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
   const employeesPerPage = 10;
   const navigate = useNavigate();
 
+  // Environment variables with defaults
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
   const COMPANY_NAME = import.meta.env.VITE_COMPANY_NAME || 'Sri Durga Devi Sweets & Bakery';
   const DEFAULT_PROFILE_ICON = import.meta.env.VITE_DEFAULT_PROFILE_ICON || 'https://ui-avatars.com/api/?name=Unknown&background=0077BE&color=fff';
 
+  // Loading animation component
+  const LoadingBubbles = () => (
+    <div className="flex justify-center items-center py-12">
+      <div className="flex gap-2">
+        <div className="w-4 h-4 rounded-full bg-[#0077BE] animate-bounce" style={{ animationDelay: '0ms' }} />
+        <div className="w-4 h-4 rounded-full bg-[#00A9E0] animate-bounce" style={{ animationDelay: '150ms' }} />
+        <div className="w-4 h-4 rounded-full bg-[#0077BE] animate-bounce" style={{ animationDelay: '300ms' }} />
+      </div>
+    </div>
+  );
+
+  // Employee card component
+  const EmployeeCard = ({ employee, onViewReports }) => (
+    <div className="flex flex-col sm:flex-row items-center justify-between py-4 px-2 hover:bg-gray-50 transition duration-200 hover:shadow-sm">
+      <div className="flex items-center space-x-4 mb-4 sm:mb-0 w-full sm:w-auto">
+        <div className="relative">
+          <img
+            src={employee.profileImage || `https://ui-avatars.com/api/?name=${employee.name?.split(' ').join('+')}&background=0077BE&color=fff`}
+            alt={`${employee.name}'s profile`}
+            className="w-12 h-12 rounded-full shadow-sm border-2 border-white transition-transform duration-200 hover:scale-105"
+            loading="lazy"
+            onError={(e) => {
+              e.target.src = DEFAULT_PROFILE_ICON;
+            }}
+          />
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#00A9E0] rounded-full border-2 border-white"></div>
+        </div>
+        <div className="text-center sm:text-left">
+          <p className="text-lg font-semibold text-gray-800">{employee.name}</p>
+          <p className="text-gray-500">Role: {employee.role || "N/A"}</p>
+          <p className="text-gray-500">ID: {employee.id}</p>
+        </div>
+      </div>
+      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto justify-center">
+        <Link 
+          to={`/mark-attendance/${employee.id}`} 
+          className="px-4 py-2 bg-[#0077BE] text-white rounded-md hover:bg-[#0066A3] transition-all duration-200 hover:shadow-md text-center whitespace-nowrap"
+        >
+          Mark Attendance
+        </Link>
+        <button 
+          onClick={() => onViewReports(employee.id)}
+          className="px-4 py-2 bg-[#00A9E0] text-white rounded-md hover:bg-[#0098CA] transition-all duration-200 hover:shadow-md whitespace-nowrap"
+        >
+          View Reports
+        </button>
+      </div>
+    </div>
+  );
+
+  // Memoized API call with caching
   const fetchEmployees = useCallback(async () => {
+    if (employees.length > 0 && !isInitialLoad) return;
+    
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/employees/all`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const cacheKey = `employees_${API_BASE_URL}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      
+      if (cachedData) {
+        setEmployees(JSON.parse(cachedData));
+        setIsInitialLoad(false);
+        return;
       }
+
+      const response = await fetch(`${API_BASE_URL}/employees/all`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
       const data = await response.json();
       setEmployees(data);
+      sessionStorage.setItem(cacheKey, JSON.stringify(data));
+      setIsInitialLoad(false);
     } catch (error) {
       console.error("Error fetching employees:", error);
       toast.error('Failed to load employees. Please try again later.');
     } finally {
       setIsLoading(false);
     }
-  }, [API_BASE_URL]);
+  }, [API_BASE_URL, isInitialLoad, employees.length]);
 
+  // Initial load and cache invalidation
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchEmployees();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     fetchEmployees();
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [fetchEmployees]);
 
-  const LoadingBubbles = () => (
-    <div style={styles.loadingBubbles}>
-      <div style={styles.bubbleContainer}>
-        <div style={{ ...styles.bubble, backgroundColor: '#0077BE', animation: 'bounce 1s infinite ease-in-out' }}></div>
-        <div style={{ ...styles.bubble, backgroundColor: '#00A9E0', animation: 'bounce 1s infinite ease-in-out 150ms' }}></div>
-        <div style={{ ...styles.bubble, backgroundColor: '#0077BE', animation: 'bounce 1s infinite ease-in-out 300ms' }}></div>
-      </div>
-    </div>
-  );
-
-  const filteredEmployees = React.useMemo(() => 
+  // Memoized filtered employees
+  const filteredEmployees = useMemo(() => 
     employees.filter(emp => 
       emp.name?.toLowerCase().includes(search.toLowerCase())
     ),
     [employees, search]
   );
 
-  const paginatedEmployees = React.useMemo(() => {
+  // Memoized paginated employees
+  const paginatedEmployees = useMemo(() => {
     const indexOfLastEmployee = currentPage * employeesPerPage;
     const indexOfFirstEmployee = indexOfLastEmployee - employeesPerPage;
     return filteredEmployees.slice(indexOfFirstEmployee, indexOfLastEmployee);
   }, [filteredEmployees, currentPage, employeesPerPage]);
 
-  const handleViewReports = (employeeId) => {
+  // Handlers with memoization
+  const handleViewReports = useCallback((employeeId) => {
     navigate(`/attendance-summary/${employeeId}`);
-  };
+  }, [navigate]);
 
-  const handleLogoClick = () => {
+  const handleLogoClick = useCallback(() => {
     navigate('/attendance');
-  };
+  }, [navigate]);
 
-  const handleBackToHome = () => {
+  const handleBackToHome = useCallback(() => {
     navigate('/');
-  };
+  }, [navigate]);
 
-  const handlePageChange = (newPage) => {
+  const handlePageChange = useCallback((newPage) => {
     setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
+
+  const handleSearchChange = useCallback((e) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-gray-50">
-      {/* Enhanced Navbar */}
+      {/* Navbar */}
       <nav className="bg-[#0077BE] shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -113,6 +171,7 @@ const AttendancePage = () => {
                 className="h-10 w-auto max-h-[40px] mr-2" 
                 src="/assets/logo.png" 
                 alt="Company Logo"
+                loading="lazy"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/150x40?text=Logo';
                 }}
@@ -146,7 +205,6 @@ const AttendancePage = () => {
       </nav>
 
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6">
-        {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">
             Employee Attendance
@@ -164,59 +222,24 @@ const AttendancePage = () => {
               placeholder="Search employees..."
               className="w-full pl-10 pr-4 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-[#0077BE] focus:outline-none transition-all duration-200"
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={handleSearchChange}
               aria-label="Search employees"
             />
             <FaSearch className="absolute left-3 top-3 text-gray-500" />
           </div>
         </div>
 
-        {/* Employee Cards - Show loading or content */}
+        {/* Employee Cards */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
           {isLoading ? (
             <LoadingBubbles />
           ) : paginatedEmployees.length > 0 ? (
             paginatedEmployees.map((emp) => (
-              <div 
-                key={emp.id} 
-                className="flex flex-col sm:flex-row items-center justify-between py-4 px-2 hover:bg-gray-50 transition duration-200 hover:shadow-sm"
-              >
-                <div className="flex items-center space-x-4 mb-4 sm:mb-0 w-full sm:w-auto">
-                  <div className="relative">
-                    <img
-                      src={emp.profileImage || `https://ui-avatars.com/api/?name=${emp.name?.split(' ').join('+')}&background=0077BE&color=fff`}
-                      alt={`${emp.name}'s profile`}
-                      className="w-12 h-12 rounded-full shadow-sm border-2 border-white transition-transform duration-200 hover:scale-105"
-                      onError={(e) => {
-                        e.target.src = DEFAULT_PROFILE_ICON;
-                      }}
-                    />
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#00A9E0] rounded-full border-2 border-white"></div>
-                  </div>
-                  <div className="text-center sm:text-left">
-                    <p className="text-lg font-semibold text-gray-800">{emp.name}</p>
-                    <p className="text-gray-500">Role: {emp.role || "N/A"}</p>
-                    <p className="text-gray-500">ID: {emp.id}</p>
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto justify-center">
-                  <Link 
-                    to={`/mark-attendance/${emp.id}`} 
-                    className="px-4 py-2 bg-[#0077BE] text-white rounded-md hover:bg-[#0066A3] transition-all duration-200 hover:shadow-md text-center whitespace-nowrap"
-                  >
-                    Mark Attendance
-                  </Link>
-                  <button 
-                    onClick={() => handleViewReports(emp.id)}
-                    className="px-4 py-2 bg-[#00A9E0] text-white rounded-md hover:bg-[#0098CA] transition-all duration-200 hover:shadow-md whitespace-nowrap"
-                  >
-                    View Reports
-                  </button>
-                </div>
-              </div>
+              <EmployeeCard 
+                key={emp.id}
+                employee={emp}
+                onViewReports={handleViewReports}
+              />
             ))
           ) : (
             <p className="text-center text-gray-500 py-4">
@@ -225,7 +248,7 @@ const AttendancePage = () => {
           )}
         </div>
 
-        {/* Pagination - Only show if not loading */}
+        {/* Pagination */}
         {!isLoading && filteredEmployees.length > employeesPerPage && (
           <div className="mt-6 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <button
@@ -255,7 +278,7 @@ const AttendancePage = () => {
         )}
       </div>
 
-      {/* Back to Home Button - Fixed at bottom right */}
+      {/* Back to Home Button */}
       <button
         onClick={handleBackToHome}
         className="fixed bottom-6 right-6 z-40 px-4 py-3 bg-[#0077BE] text-white rounded-lg shadow-lg hover:bg-[#0066A3] transition-all duration-200 hover:shadow-xl flex items-center"
@@ -268,4 +291,4 @@ const AttendancePage = () => {
   );
 };
 
-export default AttendancePage;
+export default React.memo(AttendancePage);

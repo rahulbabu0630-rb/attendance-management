@@ -62,9 +62,9 @@ const AddEmployee = () => {
       return;
     }
 
-    // Phone number validation (optional, up to 15 chars, allows + and -)
+    // Phone number validation (optional)
     if (formData.number.trim() !== '') {
-      const phonePattern = /^[+\-0-9]{1,15}$/; // Allows +, -, and digits up to 15 chars
+      const phonePattern = /^[+\-0-9]{1,15}$/;
       if (!phonePattern.test(formData.number.trim())) {
         toast.error('Phone number can contain +, -, or digits (max 15 characters)', {
           position: "top-left",
@@ -81,7 +81,9 @@ const AddEmployee = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/employees/add', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://durgadevisweets.onrender.com';
+      
+      const response = await fetch(`${apiUrl}/employees/add`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -89,14 +91,18 @@ const AddEmployee = () => {
         body: JSON.stringify({
           name: formData.name.trim(),
           salary: parseFloat(formData.salary),
-          ...(formData.role.trim() && { role: formData.role.trim() }), // Only include if not empty
-          ...(formData.number.trim() && { number: formData.number.trim() }), // Only include if not empty
+          ...(formData.role.trim() && { role: formData.role.trim() }),
+          ...(formData.number.trim() && { number: formData.number.trim() }),
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add employee');
+        // Handle specific backend error messages
+        if (errorData.message.includes("already exists")) {
+          throw new Error(errorData.message);
+        }
+        throw new Error('Failed to add employee. Please try again.');
       }
 
       toast.success('✅ Employee added successfully!', {
@@ -109,15 +115,17 @@ const AddEmployee = () => {
         className: 'toast-success'
       });
       
-      // Reset form but stay on the same page
       setFormData({ name: '', role: '', salary: '', number: '' });
       
     } catch (error) {
       console.error('Error:', error);
       let errorMessage = error.message;
       
-      // Special handling for validation errors
-      if (error.message.includes('Invalid phone number format')) {
+      if (error.message.includes('Phone number already registered')) {
+        errorMessage = 'This phone number is already registered!';
+      } else if (error.message.includes('Employee with this name already exists')) {
+        errorMessage = 'An employee with this name already exists!';
+      } else if (error.message.includes('Invalid phone number format')) {
         errorMessage = 'Invalid phone number format. Please use +, -, or digits (max 15 chars).';
       }
       
@@ -135,8 +143,7 @@ const AddEmployee = () => {
     }
   };
 
-  // Analog clock with digital time (unchanged from your original)
-  const renderClock = () => {
+  const renderPendulumClock = () => {
     const hours = currentTime.getHours() % 12;
     const minutes = currentTime.getMinutes();
     const seconds = currentTime.getSeconds();
@@ -144,9 +151,10 @@ const AddEmployee = () => {
     const hourDegrees = (hours * 30) + (minutes * 0.5);
     const minuteDegrees = minutes * 6;
     const secondDegrees = seconds * 6;
+    const pendulumDegrees = Math.sin(Date.now() / 500) * 15;
 
     const formattedTime = currentTime.toLocaleTimeString('en-US', {
-      hour12: false,
+      hour12: true,
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
@@ -155,34 +163,71 @@ const AddEmployee = () => {
     const formattedDate = currentTime.toLocaleDateString('en-US', { 
       weekday: 'long', 
       month: 'long', 
-      day: 'numeric' 
+      day: 'numeric',
+      year: 'numeric'
     });
 
     return (
       <div className="fixed top-6 right-6 z-50 flex flex-col items-center">
-        <div className="relative w-24 h-24 rounded-full bg-gray-800 border-2 border-purple-400 shadow-lg">
-          <div className="absolute inset-0 rounded-full flex items-center justify-center">
-            <div 
-              className="absolute top-1/2 left-1/2 w-1 h-8 bg-white rounded-full transform -translate-x-1/2 -translate-y-full origin-bottom"
-              style={{ transform: `translateX(-50%) rotate(${hourDegrees}deg)` }}
-            ></div>
-            <div 
-              className="absolute top-1/2 left-1/2 w-1 h-10 bg-purple-300 rounded-full transform -translate-x-1/2 -translate-y-full origin-bottom"
-              style={{ transform: `translateX(-50%) rotate(${minuteDegrees}deg)` }}
-            ></div>
-            <div 
-              className="absolute top-1/2 left-1/2 w-0.5 h-12 bg-cyan-400 rounded-full transform -translate-x-1/2 -translate-y-full origin-bottom"
-              style={{ transform: `translateX(-50%) rotate(${secondDegrees}deg)` }}
-            ></div>
-            <div className="absolute w-2 h-2 rounded-full bg-purple-500 z-10"></div>
+        {/* Clock Container */}
+        <div className="relative w-32 h-48 flex justify-center">
+          {/* Clock Body */}
+          <div className="relative w-24 h-24 rounded-full bg-amber-900 border-4 border-amber-700 shadow-lg overflow-hidden">
+            {/* Clock Face */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* Clock Center */}
+              <div className="absolute z-10 w-3 h-3 rounded-full bg-gray-800"></div>
+              
+              {/* Hour Hand */}
+              <div 
+                className="absolute z-3 w-1 h-6 bg-gray-800 rounded-full origin-bottom"
+                style={{
+                  transform: `translate(-50%, -100%) rotate(${hourDegrees}deg)`,
+                  top: '50%',
+                  left: '50%'
+                }}
+              ></div>
+              
+              {/* Minute Hand */}
+              <div 
+                className="absolute z-2 w-1 h-8 bg-gray-700 rounded-full origin-bottom"
+                style={{
+                  transform: `translate(-50%, -100%) rotate(${minuteDegrees}deg)`,
+                  top: '50%',
+                  left: '50%'
+                }}
+              ></div>
+              
+              {/* Second Hand */}
+              <div 
+                className="absolute z-1 w-0.5 h-10 bg-red-500 rounded-full origin-bottom"
+                style={{
+                  transform: `translate(-50%, -100%) rotate(${secondDegrees}deg)`,
+                  top: '50%',
+                  left: '50%'
+                }}
+              ></div>
+            </div>
           </div>
+          
+          {/* Pendulum */}
+          <div 
+            className="absolute top-24 w-1 h-16 bg-amber-800 origin-top"
+            style={{ transform: `rotate(${pendulumDegrees}deg)` }}
+          >
+            <div className="absolute bottom-0 left-1/2 w-6 h-6 rounded-full bg-amber-600 transform -translate-x-1/2"></div>
+          </div>
+          
+          {/* Clock Top */}
+          <div className="absolute top-0 w-8 h-4 bg-amber-800 rounded-t-full"></div>
         </div>
 
-        <div className="mt-3 text-center bg-gray-900/80 backdrop-blur-sm rounded-lg p-2 border border-purple-500/30 shadow">
-          <div className="text-md font-mono font-bold text-purple-200">
+        {/* Digital Time */}
+        <div className="mt-4 text-center bg-amber-900/90 backdrop-blur-sm rounded-lg p-2 border border-amber-700 shadow">
+          <div className="text-md font-mono font-bold text-amber-100">
             {formattedTime}
           </div>
-          <div className="text-xs text-purple-300 mt-1">
+          <div className="text-xs text-amber-200 mt-1">
             {formattedDate}
           </div>
         </div>
@@ -195,10 +240,10 @@ const AddEmployee = () => {
       <ToastContainer 
         position="top-left"
         autoClose={5000}
-        hideProgressBar="true"
-        newestOnTop="false"
+        hideProgressBar={true}
+        newestOnTop={false}
         closeOnClick
-        rtl="false"
+        rtl={false}
         pauseOnFocusLoss
         draggable
         pauseOnHover
@@ -230,7 +275,7 @@ const AddEmployee = () => {
       </style>
 
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {renderClock()}
+        {renderPendulumClock()}
 
         <header className="mb-10 text-center">
           <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 tracking-tight">
