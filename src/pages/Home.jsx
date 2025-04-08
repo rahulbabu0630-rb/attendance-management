@@ -8,7 +8,7 @@ const Home = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Memoize products data to prevent unnecessary re-renders
+  // Memoize products data
   const products = useMemo(() => [
     { name: "Gifting", image: "/assets/products/gifting.jpg", gradient: "from-purple-600/80 to-pink-600/80" },
     { name: "Cakes", image: "/assets/products/cakes.jpg", gradient: "from-amber-600/80 to-orange-600/80" },
@@ -36,7 +36,6 @@ const Home = () => {
     {id: 29, text: '~PROPRIETOR : CH . RAMU'}
   ], []);
 
-  // Navigation items for DRY principle
   const navItems = useMemo(() => ['Home', 'About Us', 'Gallery', 'Attendance', 'Contact Us'], []);
 
   useEffect(() => {
@@ -96,7 +95,7 @@ const Home = () => {
               }}
             />
             <div className="absolute inset-2 rounded-full bg-gradient-to-br from-pink-500 to-red-600 flex items-center justify-center">
-              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              {/* Removed the blinking dot element */}
             </div>
           </div>
           <p className="mt-4 text-center text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-red-600 font-medium">
@@ -107,14 +106,13 @@ const Home = () => {
     );
   }
 
-  // Fallback logo SVG
   const fallbackLogoSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23e91e63'/%3E%3Ctext x='50%' y='50%' font-size='20' fill='white' text-anchor='middle' dominant-baseline='middle'%3ELogo%3C/text%3E%3C/svg%3E";
 
   return (
     <div className="bg-white">
-      {/* Navbar - Medium size (h-30) */}
+      {/* Navbar */}
       <div className="w-screen bg-pink-700 relative left-1/2 right-1/2 mx-[-50vw]">
-        <nav className="max-w-screen-4xl mx-auto px-4 sm:px-6 lg:px-8 relative h-40">
+        <nav className="max-w-screen-4xl mx-auto px-4 sm:px-6 lg:px-8 relative h-18">
           <div className="absolute left-4 sm:left-6 lg:left-8 h-full flex items-center">
             <a 
               href="#home" 
@@ -125,7 +123,7 @@ const Home = () => {
               }}
             >
               <img 
-                className="h-full max-h-[60px] object-contain" 
+                className="h-full max-h-[90px] object-contain" 
                 src="/assets/logo.png" 
                 alt="Logo"
                 onError={(e) => {
@@ -142,14 +140,14 @@ const Home = () => {
                 <button
                   key={item} 
                   onClick={() => handleNavigation(item)}
-                  className={`relative text-white transition-all duration-300 font-semibold px-4 py-3 text-xl
+                  className={`relative text-white transition-all duration-300 font-medium px-4 py-3 text-lg font-sans
                     ${activePage === item ? 
-                      'text-pink-100 scale-105' : 
-                      'hover:text-pink-100 hover:scale-105'}`}
+                      'text-pink-100' : 
+                      'hover:text-pink-100'}`}
                 >
                   {item}
                   {activePage === item && (
-                    <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-3/4 h-1.5 bg-pink-100 rounded-full" />
+                    <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-3/4 h-px bg-pink-100 rounded-full" />
                   )}
                 </button>
               ))}
