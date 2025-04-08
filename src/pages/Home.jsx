@@ -113,7 +113,7 @@ const Home = () => {
   return (
     <div className="bg-white">
       {/* Navbar - Medium size (h-40) */}
-      <div className="w-screen bg-pink-700 relative left-1/2 right-1/2 mx-[-50vw]">
+      <div className="w-screen bg-pink-500 relative left-1/2 right-1/2 mx-[-30vw]">
         <nav className="max-w-screen-4xl mx-auto px-4 sm:px-6 lg:px-8 relative h-40">
           <div className="absolute left-4 sm:left-6 lg:left-8 h-full flex items-center">
             <a 
