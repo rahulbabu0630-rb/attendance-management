@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import { debounce } from 'lodash';
 
 const EmployeeDirectory = () => {
-  const DEFAULT_PROFILE_ICON = import.meta.env.VITE_DEFAULT_PROFILE_ICON;
+  const DEFAULT_PROFILE_ICON = '/assets/default.png';
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const COMPANY_NAME = import.meta.env.VITE_COMPANY_NAME;
 
@@ -16,29 +17,74 @@ const EmployeeDirectory = () => {
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [attendanceData, setAttendanceData] = useState({});
 
   const navigate = useNavigate();
 
+  // Scroll handler
   useEffect(() => {
     const handleScroll = () => {
-      if (window.pageYOffset > 300) {
-        setShowScrollButton(true);
-      } else {
-        setShowScrollButton(false);
-      }
+      setShowScrollButton(window.pageYOffset > 300);
     };
-    
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+  // Validate date parameters
+  const validateDateParams = (year, month) => {
+    const currentYear = new Date().getFullYear();
+    return (
+      year >= 2000 && year <= currentYear + 5 &&
+      month >= 1 && month <= 12
+    );
   };
 
+  // Fetch attendance data with proper error handling
+  const fetchAttendance = async (employeeId, year, month) => {
+    try {
+      if (!validateDateParams(year, month)) {
+        throw new Error('Invalid date parameters');
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/attendance/filter`, {
+        params: { 
+          employeeId,
+          year: parseInt(year),
+          month: parseInt(month)
+        },
+        validateStatus: (status) => status < 500
+      });
+
+      if (response.status === 400) {
+        throw new Error(response.data?.message || 'Invalid request parameters');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Attendance API Error:", {
+        url: error.config?.url,
+        params: error.config?.params,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  };
+
+  // Debounced version of fetchAttendance
+  const debouncedFetchAttendance = debounce(async (employeeId, year, month) => {
+    try {
+      const data = await fetchAttendance(employeeId, year, month);
+      setAttendanceData(prev => ({
+        ...prev,
+        [employeeId]: data
+      }));
+    } catch (error) {
+      showToastMessage(error.message, 'error');
+    }
+  }, 500);
+
+  // Fetch all employees
   const fetchEmployees = async () => {
     try {
       setLoading(true);
@@ -54,13 +100,24 @@ const EmployeeDirectory = () => {
         throw new Error('Invalid data format from server');
       }
 
-      const employeesWithDefaultImages = data.map(emp => ({
+      const employeesWithDefaults = data.map(emp => ({
         ...emp,
-        profileImage: emp.profileImage || DEFAULT_PROFILE_ICON,
+        profileImage: DEFAULT_PROFILE_ICON,
         number: emp.number || '',
         salary: emp.salary || 0
       }));
-      setEmployees(employeesWithDefaultImages);
+      setEmployees(employeesWithDefaults);
+
+      // Fetch attendance for current month for each employee
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth() + 1;
+      
+      await Promise.all(
+        employeesWithDefaults.map(emp => 
+          debouncedFetchAttendance(emp.id, currentYear, currentMonth)
+        )
+      );
     } catch (err) {
       console.error("Error fetching employees:", err);
       setError(err.message);
@@ -74,18 +131,20 @@ const EmployeeDirectory = () => {
     fetchEmployees();
   }, []);
 
+  // Toast message helper
   const showToastMessage = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ ...toast, show: false }), 3000);
   };
 
+  // Delete employee handler
   const handleDelete = async (id) => {
     setIsProcessing(true);
     try {
       const response = await axios.delete(`${API_BASE_URL}/employees/delete/${id}`);
       
       if (response.status !== 200) {
-        throw new Error(response.data.message || 'Deletion failed');
+        throw new Error(response.data?.message || 'Deletion failed');
       }
 
       setEmployees(prev => prev.filter(emp => emp.id !== id));
@@ -99,21 +158,27 @@ const EmployeeDirectory = () => {
     }
   };
 
+  // Navigation handlers
   const navigateToEditProfile = (employee) => {
-    navigate(`/employee-profile/${employee.id}`, {
-      state: { employee }
-    });
+    navigate(`/employee-profile/${employee.id}`, { state: { employee } });
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Filter employees based on search
   const filteredEmployees = employees.filter(employee =>
     employee.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Format salary display
   const formatSalary = (salary) => {
     if (salary === null || salary === undefined || salary === '') return 'N/A';
     return `₹${parseFloat(salary).toLocaleString('en-IN')}`;
   };
 
+  // Loading state
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-gray-50">
       <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-6"></div>
@@ -121,6 +186,7 @@ const EmployeeDirectory = () => {
     </div>
   );
 
+  // Error state
   if (error) return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gradient-to-br from-red-50 to-gray-50">
       <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-red-100 transform hover:scale-[1.02] transition-transform duration-300">
@@ -156,7 +222,7 @@ const EmployeeDirectory = () => {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header Section */}
       <div className="mb-10">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
           <div className="flex flex-col items-start">
@@ -169,10 +235,10 @@ const EmployeeDirectory = () => {
               }}
             >
               <h1 className="text-3xl md:text-4xl font-bold text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                Employee Directory
+                  THE BOYS
               </h1>
               <p className="text-gray-500 mt-1 text-sm sm:text-base px-1 py-1 bg-gray-50 rounded-lg">
-                {COMPANY_NAME}
+                Manage Your Workers
               </p>
             </motion.div>
           </div>
@@ -262,15 +328,10 @@ const EmployeeDirectory = () => {
                   >
                     <div className="relative">
                       <img 
-                        src={employee.profileImage} 
+                        src={DEFAULT_PROFILE_ICON}
                         alt={employee.name}
                         className="w-14 h-14 rounded-full object-cover mr-4 border-4 border-white shadow-lg group-hover:border-blue-200 transition-all duration-500 group-hover:rotate-6"
-                        style={{
-                          transformStyle: 'preserve-3d'
-                        }}
-                        onError={(e) => {
-                          e.target.src = DEFAULT_PROFILE_ICON;
-                        }}
+                        style={{ transformStyle: 'preserve-3d' }}
                       />
                       <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full w-5 h-5 flex items-center justify-center shadow-md transform group-hover:scale-125 transition-transform duration-300">
                         <i className="fas fa-check text-white text-xs"></i>
@@ -289,9 +350,7 @@ const EmployeeDirectory = () => {
                     onClick={() => setShowDeleteConfirm(employee.id)}
                     className="text-gray-400 hover:text-red-500 transition-all duration-300 transform hover:scale-125 p-1"
                     title="Delete employee"
-                    style={{
-                      transformStyle: 'preserve-3d'
-                    }}
+                    style={{ transformStyle: 'preserve-3d' }}
                   >
                     <i className="fas fa-trash-alt"></i>
                   </button>
@@ -317,15 +376,28 @@ const EmployeeDirectory = () => {
                       <p className="font-medium text-gray-700">{employee.number || 'Not provided'}</p>
                     </div>
                   </div>
+
+                  {/* Attendance Summary */}
+                  {attendanceData[employee.id] && (
+                    <div className="flex items-center bg-gray-50 p-3 rounded-xl group-hover:bg-blue-50 transition-all duration-300 transform group-hover:-translate-y-0.5">
+                      <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-2 rounded-xl mr-3 text-blue-600 shadow-sm transform group-hover:rotate-6 transition-transform duration-300">
+                        <i className="fas fa-calendar-check text-sm"></i>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Attendance (Current Month)</p>
+                        <p className="font-medium text-gray-700">
+                          {attendanceData[employee.id]?.presentDays || 0} days present
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="mt-5 pt-4 border-t border-gray-100 flex justify-end">
                   <button
                     onClick={() => navigateToEditProfile(employee)}
                     className="text-sm bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 font-medium flex items-center transition-all duration-300 transform hover:scale-105"
-                    style={{
-                      transformStyle: 'preserve-3d'
-                    }}
+                    style={{ transformStyle: 'preserve-3d' }}
                   >
                     <i className="fas fa-pen mr-2"></i>
                     Edit Details
@@ -379,9 +451,7 @@ const EmployeeDirectory = () => {
                   onClick={() => setShowDeleteConfirm(null)}
                   className="px-5 py-2.5 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:-translate-y-0.5"
                   disabled={isProcessing}
-                  style={{
-                    transformStyle: 'preserve-3d'
-                  }}
+                  style={{ transformStyle: 'preserve-3d' }}
                 >
                   Cancel
                 </button>
@@ -391,9 +461,7 @@ const EmployeeDirectory = () => {
                     isProcessing ? 'opacity-80 cursor-not-allowed' : ''
                   }`}
                   disabled={isProcessing}
-                  style={{
-                    transformStyle: 'preserve-3d'
-                  }}
+                  style={{ transformStyle: 'preserve-3d' }}
                 >
                   {isProcessing ? (
                     <>
@@ -477,7 +545,7 @@ const EmployeeDirectory = () => {
       )}
 
       {/* Custom Animations */}
-      <style jsx global>{`
+      <style jsx="true" global="true">{`
         @keyframes toast-pop {
           0% { transform: translateY(20px) scale(0.9); opacity: 0; }
           50% { transform: translateY(-10px) scale(1.05); }

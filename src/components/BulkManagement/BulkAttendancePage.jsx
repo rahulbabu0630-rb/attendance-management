@@ -190,34 +190,40 @@ const BulkAttendancePage = () => {
         className="animate__animated animate__fadeIn"
       />
       
-      <nav className="bg-gradient-to-r from-purple-600 to-pink-600 shadow-lg">
+      {/* Fixed Header with absolute positioning */}
+      <nav className="fixed top-0 left-0 right-0 bg-gradient-to-r from-purple-600 to-pink-600 shadow-lg z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div 
-              className="flex items-center cursor-pointer group"
-              onClick={handleLogoClick}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
-            >
-              <img 
-                className="h-10 w-auto max-h-[40px] transform transition-all duration-300 group-hover:scale-110"
-                src="/assets/logo.png" 
-                alt="Company Logo"
-                style={{
-                  maxWidth: '150px',
-                  objectFit: 'contain'
-                }}
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/150x40?text=Logo';
-                  e.target.className = 'h-10 w-auto max-h-[40px]';
-                }}
-              />
-              <span className="ml-2 text-xl font-bold text-white tracking-wide group-hover:text-opacity-80 transition-all duration-300">
-                {import.meta.env.VITE_COMPANY_NAME}
-              </span>
+            {/* Logo/Title - absolutely positioned left */}
+            <div className="absolute left-4 flex items-center">
+              <div 
+                className="flex items-center cursor-pointer group"
+                onClick={handleLogoClick}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
+              >
+                <img 
+                  className="h-10 w-auto max-h-[40px] transform transition-all duration-300 group-hover:scale-110"
+                  src="/assets/logo.png" 
+                  alt="Company Logo"
+                  style={{
+                    maxWidth: '150px',
+                    objectFit: 'contain'
+                  }}
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/150x40?text=Logo';
+                    e.target.className = 'h-10 w-auto max-h-[40px]';
+                  }}
+                />
+                <span className="ml-2 text-xl font-bold text-white tracking-wide group-hover:text-opacity-80 transition-all duration-300">
+                  {import.meta.env.VITE_COMPANY_NAME}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
+
+            {/* Nav items - absolutely positioned right */}
+            <div className="absolute right-4 flex items-center space-x-4">
               <button 
                 onClick={() => navigate('/attendance')}
                 className="flex items-center px-3 py-1 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all duration-300"
@@ -237,7 +243,8 @@ const BulkAttendancePage = () => {
         <FaArrowDown />
       </button>
 
-      <div className="max-w-6xl mx-auto py-8 px-6">
+      {/* Main content with padding to account for fixed header */}
+      <div className="pt-24 max-w-6xl mx-auto py-8 px-6">
         <h1 className="text-3xl font-bold text-purple-900 text-center mb-6 uppercase tracking-wide">
           Single Click Attendance
         </h1>

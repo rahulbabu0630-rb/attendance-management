@@ -1,4 +1,3 @@
-import React from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import AboutUs from "./components/AboutUs";
@@ -18,26 +17,17 @@ const AppContent = () => {
   return (
     <div>
       <Routes>
-        {/* Home route */}
         <Route path="/" element={<Home />} />
-        
-        {/* Main navigation routes */}
         <Route path="/about" element={<AboutUs />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/attendance" element={<AttendancePage />} />
         <Route path="/contact-us" element={<ContactUs />} />
-        
-        {/* Attendance management routes */}
         <Route path="/mark-attendance/:id" element={<MarkAttendance />} />
         <Route path="/attendance-summary" element={<AttendanceSummary />} />
         <Route path="/attendance-summary/:employeeId" element={<AttendanceSummary />} />
-        
-        {/* Employee management routes */}
         <Route path="/employee-management" element={<EmployeeDirectory />} />
         <Route path="/add-employee" element={<AddEmployee />} />
         <Route path="/employee-profile/:name" element={<EmployeeProfile />} />
-        
-        {/* Bulk operations */}
         <Route path="/bulk-attendance" element={<BulkAttendancePage />} />
       </Routes>
     </div>

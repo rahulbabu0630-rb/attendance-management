@@ -39,6 +39,12 @@ const AttendanceSummary = () => {
   });
   const [error, setError] = useState('');
 
+  // Calculate days in month and daily rate
+  const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+  const dailyRate = useMemo(() => {
+    return summary.monthlySalary > 0 ? summary.monthlySalary / daysInMonth : 0;
+  }, [summary.monthlySalary, daysInMonth]);
+
   // Data fetching functions
   const fetchEmployees = useCallback(async () => {
     try {
@@ -62,12 +68,19 @@ const AttendanceSummary = () => {
     setLoading(prev => ({ ...prev, salary: true }));
     try {
       const response = await axios.get(`${API_BASE_URL}/employees/getById/${selectedEmployee}`);
-      setSummary(prev => ({ ...prev, monthlySalary: response.data.salary || 0 }));
+      const salary = response.data.salary || 0;
+      setSummary(prev => ({
+        ...prev,
+        monthlySalary: salary
+      }));
       setError('');
     } catch (err) {
       console.error("Error fetching salary:", err);
       const employee = employees.find(e => e.id === selectedEmployee);
-      setSummary(prev => ({ ...prev, monthlySalary: employee?.salary || 0 }));
+      setSummary(prev => ({
+        ...prev,
+        monthlySalary: employee?.salary || 0
+      }));
       setError('Failed to load salary data. Using fallback value.');
     } finally {
       setLoading(prev => ({ ...prev, salary: false }));
@@ -111,12 +124,12 @@ const AttendanceSummary = () => {
       switch(record.status.toLowerCase()) {
         case 'present':
           calculatedSummary.present++;
-          calculatedSummary.totalSalary += record.salary;
+          calculatedSummary.totalSalary += dailyRate;
           break;
         case 'halfday':
           calculatedSummary.halfday++;
-          calculatedSummary.halfdaySalary += record.salary;
-          calculatedSummary.totalSalary += record.salary;
+          calculatedSummary.halfdaySalary += (dailyRate * 0.5);
+          calculatedSummary.totalSalary += (dailyRate * 0.5);
           break;
         case 'absent':
           calculatedSummary.absent++;
@@ -125,7 +138,7 @@ const AttendanceSummary = () => {
     });
 
     setSummary(calculatedSummary);
-  }, [summary.monthlySalary]);
+  }, [summary.monthlySalary, dailyRate]);
 
   // Handlers
   const handleEmployeeChange = (empId) => {
@@ -200,7 +213,11 @@ const AttendanceSummary = () => {
         </div>
       ) : attendanceData.length > 0 ? (
         <>
-          <SummaryCards summary={summary} selectedEmployee={selectedEmployee} formatNumber={formatNumber} />
+          <SummaryCards 
+            summary={summary} 
+            selectedEmployee={selectedEmployee} 
+            formatNumber={formatNumber} 
+          />
           
           <AttendanceCharts 
             summary={summary} 
@@ -245,7 +262,7 @@ const AttendanceSummary = () => {
   );
 };
 
-// Utility functions (could be moved to separate utils file)
+// Utility functions
 const formatNumber = (num) => {
   return parseFloat(num || 0).toLocaleString('en-IN', {
     minimumFractionDigits: 2,

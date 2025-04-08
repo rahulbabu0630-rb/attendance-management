@@ -154,57 +154,62 @@ const AttendancePage = () => {
     setCurrentPage(1);
   }, []);
 
+  // Navbar component with absolute positioning
+  const Navbar = () => (
+    <nav className="bg-[#0077BE] shadow-md relative h-16 w-full">
+      <div className="h-full w-full px-6">
+        {/* Logo - absolute left */}
+        <div 
+          className="absolute left-6 top-1/2 transform -translate-y-1/2 flex items-center cursor-pointer transition-transform duration-200 hover:scale-[1.02]"
+          onClick={handleLogoClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
+        >
+          <img 
+            className="h-10 w-auto max-h-[40px] mr-2" 
+            src="/assets/logo.png" 
+            alt="Company Logo"
+            loading="lazy"
+            onError={(e) => {
+              e.target.src = 'https://via.placeholder.com/150x40?text=Logo';
+            }}
+          />
+          <span className="text-xl font-bold text-white tracking-wide whitespace-nowrap font-sans">
+            {COMPANY_NAME}
+          </span>
+        </div>
+
+        {/* Nav items - absolute right */}
+        <div className="absolute right-6 top-1/2 transform -translate-y-1/2 flex space-x-4 font-sans">
+          <Link 
+            to="/employee-management" 
+            className="text-white hover:bg-[#0066A3] px-4 py-2 rounded-md text-base font-medium transition-all duration-200 hover:shadow-md whitespace-nowrap"
+          >
+            Employee Management
+          </Link>
+          <Link
+            to="/bulk-attendance"
+            className="text-white hover:bg-[#0066A3] px-4 py-2 rounded-md text-base font-medium transition-all duration-200 hover:shadow-md whitespace-nowrap"
+          >
+            Bulk Attendance
+          </Link>
+          <Link 
+            to="/attendance-summary" 
+            className="text-white hover:bg-[#0066A3] px-4 py-2 rounded-md text-base font-medium transition-all duration-200 hover:shadow-md whitespace-nowrap"
+          >
+          Attendance  Reports
+          </Link>
+        </div>
+      </div>
+    </nav>
+  );
+
   return (
     <div className="relative min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-[#0077BE] shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div 
-              className="flex items-center cursor-pointer transition-transform duration-200 hover:scale-[1.02]"
-              onClick={handleLogoClick}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
-            >
-              <img 
-                className="h-10 w-auto max-h-[40px] mr-2" 
-                src="/assets/logo.png" 
-                alt="Company Logo"
-                loading="lazy"
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/150x40?text=Logo';
-                }}
-              />
-              <span className="text-xl font-bold text-white tracking-wide whitespace-nowrap">
-                {COMPANY_NAME}
-              </span>
-            </div>
-            <div className="flex space-x-4">
-              <Link 
-                to="/employee-management" 
-                className="text-white hover:bg-[#0066A3] px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:shadow-md whitespace-nowrap"
-              >
-                Employee Management
-              </Link>
-              <Link
-                to="/bulk-attendance"
-                className="text-white hover:bg-[#0066A3] px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:shadow-md whitespace-nowrap"
-              >
-                Bulk Attendance
-              </Link>
-              <Link 
-                to="/attendance-summary" 
-                className="text-white hover:bg-[#0066A3] px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:shadow-md whitespace-nowrap"
-              >
-                Attendance Reports
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
-      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6">
+      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 pt-24">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">
             Employee Attendance

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import emailjs from 'emailjs-com';
 import { FaInstagram, FaWhatsapp, FaFacebook, FaHome, FaEnvelope, FaClock } from 'react-icons/fa';
 import { SiPhonepe, SiPaytm, SiGooglepay } from 'react-icons/si';
-import { FaCcPaypal } from 'react-icons/fa';
+import { FaCcPaypal, FaSpinner } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -105,7 +105,7 @@ const ContactUs = () => {
       
       setSubmitStatus("success");
       setFormData({ email: "", message: "" });
-      toast.success('Message sent successfully!', {
+      toast.success('Query/Feedback shared successfully!', {
         position: "top-right",
         autoClose: 5000,
         hideProgressBar: false,
@@ -173,11 +173,13 @@ const ContactUs = () => {
         autoClose={5000}
         newestOnTop
         closeOnClick
-        rtl="false"
+        rtl={false}
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        toastClassName="toast-message"
+        toastClassName="toast-notification"
+        bodyClassName="toast-body"
+        progressClassName="toast-progress"
       />
 
       {/* Main Content */}
@@ -394,13 +396,51 @@ const ContactUs = () => {
           animation: spin-reverse 1s linear infinite;
         }
         
-        /* Toast styles */
-        .toast-message {
-          border-radius: 12px !important;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
-          padding: 12px 16px !important;
-          color: white !important;
-          font-weight: 500 !important;
+        /* Toast notification styles */
+        .Toastify__toast-container {
+          z-index: 9999;
+          padding: 4px;
+          width: 320px;
+        }
+        
+        .Toastify__toast {
+          border-radius: 12px;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+          padding: 12px 16px;
+          font-weight: 500;
+          min-height: 60px;
+          font-family: inherit;
+          background: white;
+          color: #333;
+          border-left: 6px solid;
+        }
+        
+        .Toastify__toast--success {
+          border-left-color: #10B981;
+        }
+        
+        .Toastify__toast--error {
+          border-left-color: #EF4444;
+        }
+        
+        .Toastify__toast-body {
+          margin: 0;
+          padding: 0;
+          line-height: 1.5;
+        }
+        
+        .Toastify__progress-bar {
+          height: 3px;
+          background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .Toastify__close-button {
+          color: #6B7280;
+          opacity: 0.7;
+        }
+        
+        .Toastify__close-button:hover {
+          opacity: 1;
         }
         
         /* Remove outline on focus for all elements */
