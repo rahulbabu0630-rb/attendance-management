@@ -6,6 +6,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
+    // Core plugins
     plugins: [
       react({
         jsxRuntime: 'automatic',
@@ -20,7 +21,8 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
-    
+
+    // Module resolution
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
@@ -30,8 +32,29 @@ export default defineConfig(({ mode }) => {
       }
     },
 
+    // Dependency optimization (FIXED: Added zod)
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'react-router-dom',
+        'framer-motion',
+        'jspdf',
+        'html2canvas',
+        'axios',
+        'zod',
+        'react-hook-form',
+        '@headlessui/react',
+        '@heroicons/react'
+      ],
+      esbuildOptions: {
+        jsx: 'automatic'
+      }
+    },
+
+    // Dev server configuration
     server: {
-      host: '0.0.0.0', // 👈 Add this line to enable LAN access
+      host: '0.0.0.0',
       port: 5173,
       strictPort: true,
       hmr: {
@@ -52,7 +75,7 @@ export default defineConfig(({ mode }) => {
       }
     },
 
-    // ... (rest of your config remains unchanged)
+    // Production build configuration
     build: {
       chunkSizeWarningLimit: 1600,
       rollupOptions: {
@@ -77,19 +100,8 @@ export default defineConfig(({ mode }) => {
       },
       sourcemap: mode !== 'production'
     },
-    optimizeDeps: {
-      include: [
-        'react',
-        'react-dom',
-        'react-router-dom',
-        'framer-motion',
-        'jspdf',
-        'axios'
-      ],
-      esbuildOptions: {
-        jsx: 'automatic'
-      }
-    },
+
+    // ESBuild configuration
     esbuild: {
       jsx: 'automatic'
     }
